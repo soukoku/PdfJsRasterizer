@@ -54,7 +54,7 @@ namespace PdfJsRenderer
                     _vm.AddTempFile(copyTo);
                     uri = new Uri(OwinServer.ServerUrl + "/" + fileName);
                 }
-                browser.Document.InvokeScript("renderPdf", new string[] { uri.ToString() });
+                browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), _vm.DPI });
             }
         }
 

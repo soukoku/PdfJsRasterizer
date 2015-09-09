@@ -1,7 +1,12 @@
-﻿function renderPdf(filePath) {
-    
-    if (window.external && filePath && PDFJS) {
+﻿var renderer = (function () {
+    var self = this;
+    var _dpi;
+
+    self.start = function (filePath, dpi) {
         //PDFJS.disableWorker = true;
+        //alert(dpi);
+        _dpi = dpi || 200;
+
         PDFJS.getDocument(filePath).then(function (pdf) {
             var info = {
                 id: pdf.fingerprint,
@@ -15,42 +20,49 @@
             window.external.Failed(error);
         });
     }
-}
 
-function renderPage(pdf, pageNum, totalPages) {
-    pdf.getPage(pageNum).then(function (page) {
-        
-        var desiredWidth = 2000;
-        var viewport = page.getViewport(1);
-        var scale = desiredWidth / viewport.width;
-        var scaledViewport = page.getViewport(scale);
-        
-        var canvas = document.getElementById('the-canvas');
-        var context = canvas.getContext('2d');
-        canvas.height = scaledViewport.height;
-        canvas.width = scaledViewport.width;
-        
-        var renderContext = {
-            canvasContext: context,
-            viewport: scaledViewport
-        };
-        page.render(renderContext).promise.then(function () {
-            var pngData = canvas.toDataURL("image/png");
-            //alert(pngData);
-            window.external.PageRendered(pageNum, pngData);
-            
-            if (pageNum < totalPages) {
-                renderPage(pdf, pageNum + 1, totalPages);
-            } else {
-                window.external.RenderCompleted();
-            }
+    function renderPage(pdf, pageNum, totalPages) {
+        pdf.getPage(pageNum).then(function (page) {
+
+            var scale = _dpi / 72; // scale from 72 
+            var scaledViewport = page.getViewport(scale);
+            //alert(scaledViewport.width + ', ' + scaledViewport.height);
+
+            var canvas = document.getElementById('the-canvas');
+            var context = canvas.getContext('2d');
+            canvas.height = scaledViewport.height;
+            canvas.width = scaledViewport.width;
+
+            var renderContext = {
+                canvasContext: context,
+                viewport: scaledViewport
+            };
+            page.render(renderContext).promise.then(function () {
+                var pngData = canvas.toDataURL("image/png");
+                window.external.PageRendered(pageNum, pngData);
+
+                if (pageNum < totalPages) {
+                    renderPage(pdf, pageNum + 1, totalPages);
+                } else {
+                    window.external.RenderCompleted();
+                }
+
+            }, function (error) {
+                window.external.Failed(error);
+            });
+
 
         }, function (error) {
             window.external.Failed(error);
         });
-		
-		
-    }, function (error) {
-        window.external.Failed(error);
-    });
+    }
+
+    return self;
+})();
+
+function renderPdf(filePath, dpi) {
+    if (window.external && filePath && PDFJS) {
+        renderer.start(filePath, dpi);
+    }
 }
+

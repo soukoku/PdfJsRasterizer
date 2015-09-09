@@ -21,6 +21,13 @@
                 <TextBlock x:Name="pdfFilePath" Text="{Binding PdfFile}"
                            TextTrimming="CharacterEllipsis"></TextBlock>
             </DockPanel>
+
+            <DockPanel DockPanel.Dock="Top" Margin="4">
+                <TextBlock Text="DPI: " DockPanel.Dock="Left"></TextBlock>
+                <TextBlock Text="{Binding DPI}"></TextBlock>
+                <Slider Minimum="96" Maximum="300" Value="{Binding DPI}" SmallChange="1" LargeChange="10" 
+                        IsEnabled="{Binding IsBusy, Converter={x:Static modern:BoolNotConverter.Instance}}"></Slider>
+            </DockPanel>
             <DockPanel DockPanel.Dock="Top">
                 <Button x:Name="startBtn" Content="_Start" IsEnabled="{Binding IsBusy, Converter={x:Static modern:BoolNotConverter.Instance}}"
                         Click="startBtn_Click"></Button>

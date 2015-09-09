@@ -53,6 +53,14 @@ namespace PdfJsRenderer
             set { _pdfFile = value; RaisePropertyChanged(); }
         }
 
+        private int _dpi = 200;
+
+        public int DPI
+        {
+            get { return _dpi; }
+            set { _dpi = value; RaisePropertyChanged(); }
+        }
+
 
         private string _error;
 
@@ -131,6 +139,7 @@ namespace PdfJsRenderer
                     using (var g = Graphics.FromImage(outImg))
                     {
                         g.DrawImage(origImg, new Rectangle(0, 0, origImg.Width, origImg.Height));
+                        outImg.SetResolution(DPI, DPI);
                         outImg.Save(filePath, ImageFormat.Png);
                     }
                 }));
