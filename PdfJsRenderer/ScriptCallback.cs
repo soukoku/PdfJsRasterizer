@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -27,14 +28,17 @@ namespace PdfJsRenderer
             _savePool.StartMinThreads();
             PdfFile = OwinServer.SamplePdfUrl;
             _browser = new WebBrowser { ObjectForScripting = this };
-            _browser.DocumentCompleted += (s, e) => { _ready = true; };
+            _browser.DocumentCompleted += (s, e) => { _ready = true; RaisePropertyChanged(() => CanStart); };
             _browser.Url = new Uri(OwinServer.RasterizerUrl);
+            _tempFilesToClean = new List<string>();
+            _dpi = 200;
         }
 
         WebBrowser _browser;
         string _saveFolder;
         CustomThreadPool _savePool;
         bool _ready;
+        List<string> _tempFilesToClean;
 
         public event PropertyChangedEventHandler PropertyChanged;
         void RaisePropertyChanged([CallerMemberName] string property = "")
@@ -43,11 +47,15 @@ namespace PdfJsRenderer
             if (hand != null) { hand(this, new PropertyChangedEventArgs(property)); }
         }
 
-        List<string> _tempFilesToClean = new List<string>();
-        internal void AddTempFile(string file)
+        void RaisePropertyChanged<T>(Expression<Func<T>> expr)
         {
-            _tempFilesToClean.Add(file);
+            var body = expr.Body as MemberExpression;
+            if (body != null)
+            {
+                RaisePropertyChanged(body.Member.Name);
+            }
         }
+
 
         #region properties
 
@@ -55,7 +63,7 @@ namespace PdfJsRenderer
         {
             get
             {
-                return _ready && !string.IsNullOrEmpty(PdfFile);
+                return _ready && !string.IsNullOrEmpty(PdfFile) && !IsBusy;
             }
         }
 
@@ -63,13 +71,17 @@ namespace PdfJsRenderer
         {
             if (CanStart)
             {
+                Error = null;
+                IsBusy = true;
+                RenderedPages = 0;
+
                 var uri = new Uri(PdfFile);
                 if (uri.IsFile)
                 {
                     var fileName = System.IO.Path.GetFileName(PdfFile);
                     var copyTo = System.IO.Path.Combine(OwinServer.WebContentFolder, fileName);
                     File.Copy(PdfFile, copyTo, true);
-                    AddTempFile(copyTo);
+                    _tempFilesToClean.Add(copyTo);
                     uri = new Uri(OwinServer.ServerUrl + "/" + fileName);
                 }
                 _browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), DPI });
@@ -80,11 +92,18 @@ namespace PdfJsRenderer
         public string PdfFile
         {
             get { return _pdfFile; }
-            set { _pdfFile = value; RaisePropertyChanged(); }
+            set
+            {
+                _pdfFile = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(() => CanStart);
+            }
         }
 
-        private int _dpi = 200;
+        public int MinDPI { get { return 96; } }
+        public int MaxDPI { get { return 300; } }
 
+        private int _dpi;
         public int DPI
         {
             get { return _dpi; }
@@ -93,7 +112,6 @@ namespace PdfJsRenderer
 
 
         private string _error;
-
         public string Error
         {
             get { return _error; }
@@ -101,7 +119,6 @@ namespace PdfJsRenderer
         }
 
         private int _totalPgs;
-
         public int TotalPages
         {
             get { return _totalPgs; }
@@ -109,7 +126,6 @@ namespace PdfJsRenderer
         }
 
         private int _renderedPages;
-
         public int RenderedPages
         {
             get { return _renderedPages; }
@@ -117,11 +133,15 @@ namespace PdfJsRenderer
         }
 
         private bool _isBusy;
-
         public bool IsBusy
         {
             get { return _isBusy; }
-            set { _isBusy = value; RaisePropertyChanged(); }
+            set
+            {
+                _isBusy = value;
+                RaisePropertyChanged();
+                RaisePropertyChanged(() => CanStart);
+            }
         }
 
 
@@ -131,9 +151,6 @@ namespace PdfJsRenderer
 
         public void PdfOpened(string id, int pages)
         {
-            Error = null;
-            IsBusy = true;
-            RenderedPages = 0;
             TotalPages = pages;
 
             _saveFolder = Path.Combine(Environment.CurrentDirectory, id);

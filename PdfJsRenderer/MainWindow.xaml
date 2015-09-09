@@ -24,11 +24,13 @@
             <DockPanel DockPanel.Dock="Top" Margin="4">
                 <TextBlock Text="DPI: " DockPanel.Dock="Left"></TextBlock>
                 <TextBlock Text="{Binding DPI}"></TextBlock>
-                <Slider Minimum="96" Maximum="300" Value="{Binding DPI}" SmallChange="1" LargeChange="10" 
+                <Slider Minimum="{Binding MinDPI, Mode=OneTime}" 
+                        Maximum="{Binding MaxDPI, Mode=OneTime}" 
+                        Value="{Binding DPI}" SmallChange="1" LargeChange="10" 
                         IsEnabled="{Binding IsBusy, Converter={x:Static modern:BoolNotConverter.Instance}}"></Slider>
             </DockPanel>
             <DockPanel DockPanel.Dock="Top">
-                <Button x:Name="startBtn" Content="_Start" IsEnabled="{Binding IsBusy, Converter={x:Static modern:BoolNotConverter.Instance}}"
+                <Button x:Name="startBtn" Content="_Start" IsEnabled="{Binding CanStart}"
                         Click="startBtn_Click"></Button>
             </DockPanel>
             <ProgressBar DockPanel.Dock="Top" Height="3"
@@ -41,6 +43,7 @@
                 <TextBlock Text=" / "></TextBlock>
                 <TextBlock Text="{Binding TotalPages, StringFormat='{}{0} pages rendered'}"></TextBlock>
             </StackPanel>
+            
         </DockPanel>
     </Grid>
 </Window>
