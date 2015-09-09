@@ -1,0 +1,48 @@
+﻿<Window x:Class="PdfJsRenderer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PdfJsRenderer"
+        xmlns:form="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+        xmlns:modern="http://modernwpf"
+        mc:Ignorable="d"
+        Title="Render Control" Height="200" Width="525"
+        AllowDrop="True"
+        DragEnter="Window_DragEnter"
+        Drop="Window_Drop">
+    <Window.DataContext>
+        <local:ScriptCallback></local:ScriptCallback>
+    </Window.DataContext>
+    <Grid>
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="4">
+                <TextBlock Text="File: " DockPanel.Dock="Left"></TextBlock>
+                <TextBlock x:Name="pdfFilePath" Text="{Binding PdfFile}"
+                           TextTrimming="CharacterEllipsis"></TextBlock>
+            </DockPanel>
+            <DockPanel DockPanel.Dock="Top">
+                <Button x:Name="startBtn" Content="_Start" IsEnabled="{Binding IsBusy, Converter={x:Static modern:BoolNotConverter.Instance}}"
+                        Click="startBtn_Click"></Button>
+            </DockPanel>
+            <ProgressBar DockPanel.Dock="Top" Height="3"
+                         Maximum="{Binding TotalPages}"
+                         Value="{Binding RenderedPages}"></ProgressBar>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top"
+                        HorizontalAlignment="Center"
+                        Margin="4">
+                <TextBlock Text="{Binding RenderedPages}"></TextBlock>
+                <TextBlock Text=" / "></TextBlock>
+                <TextBlock Text="{Binding TotalPages, StringFormat='{}{0} pages rendered'}"></TextBlock>
+            </StackPanel>
+            <WindowsFormsHost Visibility="Collapsed">
+                <form:WebBrowser x:Name="browser" DocumentCompleted="browser_DocumentCompleted"
+                                 ScriptErrorsSuppressed="False"
+                                 AllowWebBrowserDrop="False"
+                                 IsWebBrowserContextMenuEnabled="False"
+                                 WebBrowserShortcutsEnabled="False"
+                                 ></form:WebBrowser>
+            </WindowsFormsHost>
+        </DockPanel>
+    </Grid>
+</Window>
