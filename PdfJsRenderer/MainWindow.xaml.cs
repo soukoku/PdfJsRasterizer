@@ -27,35 +27,11 @@ namespace PdfJsRenderer
         {
             InitializeComponent();
             _vm = (ScriptCallback)DataContext;
-            if (!DesignerProperties.GetIsInDesignMode(this))
-            {
-                browser.ObjectForScripting = _vm;
-                browser.Url = new Uri(OwinServer.RasterizerUrl);
-            }
-        }
-
-        bool _ready;
-
-        private void browser_DocumentCompleted(object sender, System.Windows.Forms.WebBrowserDocumentCompletedEventArgs e)
-        {
-            _ready = true;
         }
 
         private void startBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (_ready && !string.IsNullOrEmpty(_vm.PdfFile))
-            {
-                var uri = new Uri(_vm.PdfFile);
-                if (uri.IsFile)
-                {
-                    var fileName = System.IO.Path.GetFileName(_vm.PdfFile);
-                    var copyTo = System.IO.Path.Combine(OwinServer.WebContentFolder, fileName);
-                    File.Copy(_vm.PdfFile, copyTo, true);
-                    _vm.AddTempFile(copyTo);
-                    uri = new Uri(OwinServer.ServerUrl + "/" + fileName);
-                }
-                browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), _vm.DPI });
-            }
+            _vm.Start();
         }
 
         private void Window_DragEnter(object sender, DragEventArgs e)

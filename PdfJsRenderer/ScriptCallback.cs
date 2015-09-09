@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace PdfJsRenderer
 {
@@ -25,10 +26,15 @@ namespace PdfJsRenderer
             _savePool.SetMinMaxThreads(1, Math.Max(1, Environment.ProcessorCount - 1));
             _savePool.StartMinThreads();
             PdfFile = OwinServer.SamplePdfUrl;
+            _browser = new WebBrowser { ObjectForScripting = this };
+            _browser.DocumentCompleted += (s, e) => { _ready = true; };
+            _browser.Url = new Uri(OwinServer.RasterizerUrl);
         }
 
+        WebBrowser _browser;
         string _saveFolder;
         CustomThreadPool _savePool;
+        bool _ready;
 
         public event PropertyChangedEventHandler PropertyChanged;
         void RaisePropertyChanged([CallerMemberName] string property = "")
@@ -45,8 +51,32 @@ namespace PdfJsRenderer
 
         #region properties
 
-        private string _pdfFile;
+        public bool CanStart
+        {
+            get
+            {
+                return _ready && !string.IsNullOrEmpty(PdfFile);
+            }
+        }
 
+        public void Start()
+        {
+            if (CanStart)
+            {
+                var uri = new Uri(PdfFile);
+                if (uri.IsFile)
+                {
+                    var fileName = System.IO.Path.GetFileName(PdfFile);
+                    var copyTo = System.IO.Path.Combine(OwinServer.WebContentFolder, fileName);
+                    File.Copy(PdfFile, copyTo, true);
+                    AddTempFile(copyTo);
+                    uri = new Uri(OwinServer.ServerUrl + "/" + fileName);
+                }
+                _browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), DPI });
+            }
+        }
+
+        private string _pdfFile;
         public string PdfFile
         {
             get { return _pdfFile; }

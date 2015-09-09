@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PdfJsRenderer"
-        xmlns:form="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
         xmlns:modern="http://modernwpf"
         mc:Ignorable="d"
         Title="Render Control" Height="200" Width="525"
@@ -42,14 +41,6 @@
                 <TextBlock Text=" / "></TextBlock>
                 <TextBlock Text="{Binding TotalPages, StringFormat='{}{0} pages rendered'}"></TextBlock>
             </StackPanel>
-            <WindowsFormsHost Visibility="Collapsed">
-                <form:WebBrowser x:Name="browser" DocumentCompleted="browser_DocumentCompleted"
-                                 ScriptErrorsSuppressed="False"
-                                 AllowWebBrowserDrop="False"
-                                 IsWebBrowserContextMenuEnabled="False"
-                                 WebBrowserShortcutsEnabled="False"
-                                 ></form:WebBrowser>
-            </WindowsFormsHost>
         </DockPanel>
     </Grid>
 </Window>
