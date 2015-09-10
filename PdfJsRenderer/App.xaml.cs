@@ -16,7 +16,7 @@ namespace PdfJsRenderer
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            OwinServer.Start();
+            ToolServer.Start();
             base.OnStartup(e);
         }
     }

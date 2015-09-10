@@ -11,7 +11,7 @@
         DragEnter="Window_DragEnter"
         Drop="Window_Drop">
     <Window.DataContext>
-        <local:ScriptCallback></local:ScriptCallback>
+        <local:Renderer></local:Renderer>
     </Window.DataContext>
     <Grid>
         <DockPanel>

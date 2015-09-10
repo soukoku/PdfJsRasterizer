@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -18,19 +19,21 @@ using System.Windows.Forms;
 
 namespace PdfJsRenderer
 {
+    /// <summary>
+    /// The rendering worker.
+    /// </summary>
     [ComVisibleAttribute(true)]
-    public class ScriptCallback : INotifyPropertyChanged
+    public class Renderer : INotifyPropertyChanged
     {
-        public ScriptCallback()
+        public Renderer()
         {
             _savePool = new CustomThreadPool();
             _savePool.SetMinMaxThreads(1, Math.Max(1, Environment.ProcessorCount - 1));
             _savePool.StartMinThreads();
-            PdfFile = OwinServer.SamplePdfUrl;
+            PdfFile = ToolServer.SamplePdfUrl;
             _browser = new WebBrowser { ObjectForScripting = this };
             _browser.DocumentCompleted += (s, e) => { _ready = true; RaisePropertyChanged(() => CanStart); };
-            _browser.Url = new Uri(OwinServer.RasterizerUrl);
-            _tempFilesToClean = new List<string>();
+            _browser.Url = new Uri(ToolServer.RasterizerUrl);
             _dpi = 200;
         }
 
@@ -38,7 +41,7 @@ namespace PdfJsRenderer
         string _saveFolder;
         CustomThreadPool _savePool;
         bool _ready;
-        List<string> _tempFilesToClean;
+        SingleFileServer _singleServer;
 
         public event PropertyChangedEventHandler PropertyChanged;
         void RaisePropertyChanged([CallerMemberName] string property = "")
@@ -78,11 +81,8 @@ namespace PdfJsRenderer
                 var uri = new Uri(PdfFile);
                 if (uri.IsFile)
                 {
-                    var fileName = System.IO.Path.GetFileName(PdfFile);
-                    var copyTo = System.IO.Path.Combine(OwinServer.WebContentFolder, fileName);
-                    File.Copy(PdfFile, copyTo, true);
-                    _tempFilesToClean.Add(copyTo);
-                    uri = new Uri(OwinServer.ServerUrl + "/" + fileName);
+                    _singleServer = new SingleFileServer(PdfFile);
+                    uri = new Uri(_singleServer.FileUrl);
                 }
                 _browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), DPI });
             }
@@ -153,7 +153,11 @@ namespace PdfJsRenderer
         {
             TotalPages = pages;
 
+            _saveFolder = ConfigurationManager.AppSettings["SaveFolder"];
+            if (string.IsNullOrEmpty(_saveFolder)) { _saveFolder = Environment.CurrentDirectory; }
+
             _saveFolder = Path.Combine(Environment.CurrentDirectory, id);
+
             if (Directory.Exists(_saveFolder))
             {
                 foreach (var file in Directory.EnumerateFiles(_saveFolder))
@@ -179,15 +183,12 @@ namespace PdfJsRenderer
                     var base64Data = Regex.Match(data, @"data:image/(?<type>.+?),(?<data>.+)").Groups["data"].Value;
                     var binData = Convert.FromBase64String(base64Data);
 
-                    // resave to optimize a tiny bit
+                    // resave to set dpi
                     using (var ms = new MemoryStream(binData))
-                    using (var origImg = Image.FromStream(ms))
-                    using (var outImg = new Bitmap(origImg.Width, origImg.Height, PixelFormat.Format24bppRgb))
-                    using (var g = Graphics.FromImage(outImg))
+                    using (var img = (Bitmap)Image.FromStream(ms))
                     {
-                        g.DrawImage(origImg, new Rectangle(0, 0, origImg.Width, origImg.Height));
-                        outImg.SetResolution(DPI, DPI);
-                        outImg.Save(filePath, ImageFormat.Png);
+                        img.SetResolution(DPI, DPI);
+                        img.Save(filePath, ImageFormat.Png);
                     }
                 }));
             }
@@ -196,7 +197,7 @@ namespace PdfJsRenderer
         public void RenderCompleted()
         {
             IsBusy = false;
-            CleanTemp();
+            Cleanup();
 
             while (_savePool.WorkingThreads > 0 || _savePool.QueueLength > 0)
             {
@@ -212,20 +213,16 @@ namespace PdfJsRenderer
         {
             Error = info;
             IsBusy = false;
-            CleanTemp();
+            Cleanup();
         }
 
-        private void CleanTemp()
+        void Cleanup()
         {
-            foreach (var file in _tempFilesToClean)
+            if (_singleServer != null)
             {
-                try
-                {
-                    File.Delete(file);
-                }
-                catch { }
+                _singleServer.Dispose();
+                _singleServer = null;
             }
-            _tempFilesToClean.Clear();
         }
 
         #endregion

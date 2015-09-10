@@ -22,11 +22,11 @@ namespace PdfJsRenderer
     /// </summary>
     public partial class MainWindow : Window
     {
-        ScriptCallback _vm;
+        Renderer _vm;
         public MainWindow()
         {
             InitializeComponent();
-            _vm = (ScriptCallback)DataContext;
+            _vm = (Renderer)DataContext;
         }
 
         private void startBtn_Click(object sender, RoutedEventArgs e)
