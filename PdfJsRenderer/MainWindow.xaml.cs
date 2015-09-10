@@ -29,6 +29,12 @@ namespace PdfJsRenderer
             _vm = (Renderer)DataContext;
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            _vm.ExitBrowserThread();
+            base.OnClosed(e);
+        }
+
         private void startBtn_Click(object sender, RoutedEventArgs e)
         {
             _vm.Start();

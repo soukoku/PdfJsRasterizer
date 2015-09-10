@@ -268,7 +268,7 @@ namespace PdfJsRenderer
             }
         }
 
-        public void ExitForConsole()
+        public void ExitBrowserThread()
         {
             _browser.Invoke(new Action(() => { Application.ExitThread(); }));
         }

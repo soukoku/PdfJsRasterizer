@@ -40,7 +40,7 @@ namespace PdfJsRenderer
                     while (!r.CanStart) { Thread.Sleep(100); }
                     r.Start();
                     while (r.IsBusy) { Thread.Sleep(100); }
-                    r.ExitForConsole();
+                    r.ExitBrowserThread();
                 }
 
 #if DEBUG
