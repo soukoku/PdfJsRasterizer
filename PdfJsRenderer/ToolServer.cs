@@ -32,13 +32,17 @@ namespace PdfJsRenderer
         public static string SamplePdfUrl { get; private set; }
 
         public static string RasterizerUrl { get; private set; }
+        public static bool IsRunning { get; private set; }
 
         internal static void Start()
         {
+            if (IsRunning) { return; }
+
             ServerUrl = "http://localhost:" + ToolServer.GetFreePort();
             SamplePdfUrl = ServerUrl + "/pdfjs/web/compressed.tracemonkey-pldi-09.pdf";
             RasterizerUrl = ServerUrl + "/rasterizer.html";
             WebApp.Start<MainStartup>(ServerUrl);
+            IsRunning = true;
         }
 
         class MainStartup

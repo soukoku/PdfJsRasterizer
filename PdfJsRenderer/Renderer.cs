@@ -27,14 +27,17 @@ namespace PdfJsRenderer
     {
         public Renderer()
         {
-            _savePool = new CustomThreadPool();
-            _savePool.SetMinMaxThreads(1, Math.Max(1, Environment.ProcessorCount - 1));
-            _savePool.StartMinThreads();
-            PdfFile = ToolServer.SamplePdfUrl;
-            _browser = new WebBrowser { ObjectForScripting = this };
-            _browser.DocumentCompleted += (s, e) => { _ready = true; RaisePropertyChanged(() => CanStart); };
-            _browser.Url = new Uri(ToolServer.RasterizerUrl);
             _dpi = 200;
+            if (ToolServer.IsRunning)
+            {
+                _savePool = new CustomThreadPool();
+                _savePool.SetMinMaxThreads(1, Math.Max(1, Environment.ProcessorCount - 1));
+                _savePool.StartMinThreads();
+                _browser = new WebBrowser { ObjectForScripting = this };
+                _browser.DocumentCompleted += (s, e) => { _ready = true; RaisePropertyChanged(() => CanStart); };
+                _browser.Url = new Uri(ToolServer.RasterizerUrl);
+                PdfFile = ToolServer.SamplePdfUrl;
+            }
         }
 
         WebBrowser _browser;

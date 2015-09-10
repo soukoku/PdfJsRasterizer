@@ -6,7 +6,6 @@
     <title>PDF.js rasterizer</title>
     <script src="/pdfjs/web/compatibility.js"></script>
     <script src="/pdfjs/build/pdf.js"></script>
-    <script src="/rasterizer.js"></script>
 </head>
 <body>
     <canvas id="the-canvas"></canvas>
@@ -74,12 +73,14 @@
         })();
 
         function renderPdf(filePath, dpi) {
-            if (window.external && filePath && PDFJS) {
-                renderer.start(filePath, dpi);
+            if (window.external && filePath) {
+                if (PDFJS) {
+                    renderer.start(filePath, dpi);
+                } else {
+                    window.external.Failed("PDFJS not available.");
+                }
             }
         }
-
-
     </script>
 </body>
 </html>

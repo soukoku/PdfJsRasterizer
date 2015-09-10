@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PdfJsRenderer"
-        xmlns:modern="http://modernwpf"
+        xmlns:conv="clr-namespace:PdfJsRenderer.Converters"
         mc:Ignorable="d"
         Title="Render Control" Height="200" Width="525"
         AllowDrop="True"
@@ -27,11 +27,13 @@
                 <Slider Minimum="{Binding MinDPI, Mode=OneTime}" 
                         Maximum="{Binding MaxDPI, Mode=OneTime}" 
                         Value="{Binding DPI}" SmallChange="1" LargeChange="10" 
-                        IsEnabled="{Binding IsBusy, Converter={x:Static modern:BoolNotConverter.Instance}}"></Slider>
+                        IsEnabled="{Binding IsBusy, Converter={x:Static conv:BoolNotConverter.Instance}}"></Slider>
             </DockPanel>
             <DockPanel DockPanel.Dock="Top">
                 <Button x:Name="startBtn" Content="_Start" IsEnabled="{Binding CanStart}"
-                        Click="startBtn_Click"></Button>
+                        Click="startBtn_Click"
+                        Padding="8 4"
+                        Margin="4"></Button>
             </DockPanel>
             <ProgressBar DockPanel.Dock="Top" Height="3"
                          Maximum="{Binding TotalPages}"
