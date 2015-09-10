@@ -1,20 +1,15 @@
 ﻿using MiscUtil.Threading;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace PdfJsRenderer
@@ -23,7 +18,7 @@ namespace PdfJsRenderer
     /// The rendering worker.
     /// </summary>
     [ComVisibleAttribute(true)]
-    public class Renderer : INotifyPropertyChanged
+    public class Renderer : INotifyPropertyChanged, IDisposable
     {
         public Renderer()
         {
@@ -95,7 +90,7 @@ namespace PdfJsRenderer
                     uri = new Uri(_singleServer.FileUrl);
                 }
 
-                Console.WriteLine("Starting render of {0}", PdfFile);
+                Log("Starting render of {0}", PdfFile);
                 _watch.Restart();
                 _browser.Invoke(new Action(() =>
                 {
@@ -178,6 +173,16 @@ namespace PdfJsRenderer
             }
         }
 
+        public delegate void LogCallback(string message, params object[] args);
+
+        private LogCallback _log = (msg, args) => Console.WriteLine(msg, args);
+        public LogCallback Log
+        {
+            get { return _log; }
+            set { if (value != null) { _log = value; } }
+        }
+
+
 
         #endregion
 
@@ -187,7 +192,7 @@ namespace PdfJsRenderer
         {
             TotalPages = pages;
 
-            Console.WriteLine("Received pdf info of {0} pages.", pages);
+            Log("Received pdf info of {0} pages.", pages);
 
             if (string.IsNullOrEmpty(SaveFolder)) { SaveFolder = Environment.CurrentDirectory; }
 
@@ -210,7 +215,7 @@ namespace PdfJsRenderer
         {
             if (SaveFolder != null)
             {
-                Console.WriteLine("Received rendered page {0}.", page);
+                Log("Received rendered page {0}.", page);
 
                 RenderedPages = page;
 
@@ -234,7 +239,7 @@ namespace PdfJsRenderer
         public void RenderCompleted()
         {
             _watch.Stop();
-            Console.WriteLine("Render completed in {0}.", _watch.Elapsed);
+            Log("Render completed in {0}.", _watch.Elapsed);
 
             IsBusy = false;
             Cleanup();
@@ -252,7 +257,7 @@ namespace PdfJsRenderer
         public void Failed(string info)
         {
             _watch.Stop();
-            Console.WriteLine("Render failed: {0}.", info);
+            Log("Render failed: {0}.", info);
 
             Error = info;
             IsBusy = false;
@@ -268,9 +273,15 @@ namespace PdfJsRenderer
             }
         }
 
-        public void ExitBrowserThread()
+
+        public void Dispose()
         {
-            _browser.Invoke(new Action(() => { Application.ExitThread(); }));
+            Cleanup();
+            if (_browser != null)
+            {
+                _browser.Invoke(new Action(() => { Application.ExitThread(); }));
+                _browser = null;
+            }
         }
         #endregion
     }

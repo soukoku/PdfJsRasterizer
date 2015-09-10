@@ -31,7 +31,7 @@ namespace PdfJsRenderer
 
         protected override void OnClosed(EventArgs e)
         {
-            _vm.ExitBrowserThread();
+            _vm.Dispose();
             base.OnClosed(e);
         }
 

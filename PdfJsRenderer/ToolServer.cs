@@ -3,20 +3,16 @@ using Owin;
 using Soukoku.Owin.Files;
 using Soukoku.Owin.Files.Services.BuiltIn;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PdfJsRenderer
 {
     /// <summary>
     /// Main owin web server hosting the rendering tool page.
     /// </summary>
-    class ToolServer
+    public class ToolServer
     {
         public static int GetFreePort()
         {
@@ -32,17 +28,19 @@ namespace PdfJsRenderer
         public static string SamplePdfUrl { get; private set; }
 
         public static string RasterizerUrl { get; private set; }
+
         public static bool IsRunning { get; private set; }
 
-        internal static void Start()
+        internal static IDisposable Start()
         {
-            if (IsRunning) { return; }
+            if (IsRunning) { return null; }
 
             ServerUrl = "http://localhost:" + ToolServer.GetFreePort();
             SamplePdfUrl = ServerUrl + "/pdfjs/web/compressed.tracemonkey-pldi-09.pdf";
             RasterizerUrl = ServerUrl + "/rasterizer.html";
-            WebApp.Start<MainStartup>(ServerUrl);
+            var server = WebApp.Start<MainStartup>(ServerUrl);
             IsRunning = true;
+            return server;
         }
 
         class MainStartup

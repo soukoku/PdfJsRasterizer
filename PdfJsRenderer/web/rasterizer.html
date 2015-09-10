@@ -13,11 +13,13 @@
         var renderer = (function () {
             var self = this;
             var _dpi;
+            var _scale;
 
             self.start = function (filePath, dpi) {
                 //PDFJS.disableWorker = true;
                 //alert(dpi);
                 _dpi = dpi || 200;
+                _scale = _dpi / 72; // scale from 72
 
                 PDFJS.getDocument(filePath).then(function (pdf) {
                     var info = {
@@ -36,18 +38,17 @@
             function renderPage(pdf, pageNum, totalPages) {
                 pdf.getPage(pageNum).then(function (page) {
 
-                    var scale = _dpi / 72; // scale from 72
-                    var scaledViewport = page.getViewport(scale);
-                    //alert(scaledViewport.width + ', ' + scaledViewport.height);
+                    var viewport = page.getViewport(_scale);
+                    //alert(viewport.width + ', ' + viewport.height);
 
                     var canvas = document.getElementById('the-canvas');
                     var context = canvas.getContext('2d');
-                    canvas.height = scaledViewport.height;
-                    canvas.width = scaledViewport.width;
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
 
                     var renderContext = {
                         canvasContext: context,
-                        viewport: scaledViewport
+                        viewport: viewport
                     };
                     page.render(renderContext).promise.then(function () {
                         var pngData = canvas.toDataURL("image/png");
@@ -73,11 +74,18 @@
         })();
 
         function renderPdf(filePath, dpi) {
-            if (window.external && filePath) {
-                if (PDFJS) {
-                    renderer.start(filePath, dpi);
+            if (window.external) {
+                if (!filePath) {
+                    window.external.Failed("No file path specified.");
+                } else if (!PDFJS) {
+                    window.external.Failed("PDFJS is not available.");
                 } else {
-                    window.external.Failed("PDFJS not available.");
+                    var canvas = document.getElementById('the-canvas');
+                    if (canvas.toDataURL) {
+                        renderer.start(filePath, dpi);
+                    } else {
+                        window.external.Failed("Browser doesn't support toDataURL().");
+                    }
                 }
             }
         }

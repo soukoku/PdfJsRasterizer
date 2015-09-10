@@ -4,8 +4,6 @@ using Soukoku.Owin.Files;
 using Soukoku.Owin.Files.Services.BuiltIn;
 using System;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
 
 namespace PdfJsRenderer
 {
