@@ -12,12 +12,12 @@ namespace PdfJsRenderer
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application
+    partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
+        public App()
         {
-            ToolServer.Start();
-            base.OnStartup(e);
+            InitializeComponent();
         }
+        
     }
 }

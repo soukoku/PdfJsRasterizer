@@ -30,21 +30,39 @@ namespace PdfJsRenderer
             _dpi = 200;
             if (ToolServer.IsRunning)
             {
+                _watch = new Stopwatch();
                 _savePool = new CustomThreadPool();
                 _savePool.SetMinMaxThreads(1, Math.Max(1, Environment.ProcessorCount - 1));
                 _savePool.StartMinThreads();
-                _browser = new WebBrowser { ObjectForScripting = this };
-                _browser.DocumentCompleted += (s, e) => { _ready = true; RaisePropertyChanged(() => CanStart); };
-                _browser.Url = new Uri(ToolServer.RasterizerUrl);
+                RunBrowserThread(new Uri(ToolServer.RasterizerUrl));
                 PdfFile = ToolServer.SamplePdfUrl;
             }
         }
+        private void RunBrowserThread(Uri url)
+        {
+            var th = new Thread(() =>
+            {
+                _browser = new WebBrowser
+                {
+                    ObjectForScripting = this
+                };
+                _browser.DocumentCompleted += (s, e) =>
+                {
+                    _ready = true;
+                    RaisePropertyChanged(() => CanStart);
+                };
+                _browser.Url = new Uri(ToolServer.RasterizerUrl);
+                Application.Run();
+            });
+            th.SetApartmentState(ApartmentState.STA);
+            th.Start();
+        }
 
         WebBrowser _browser;
-        string _saveFolder;
         CustomThreadPool _savePool;
         bool _ready;
         SingleFileServer _singleServer;
+        Stopwatch _watch;
 
         public event PropertyChangedEventHandler PropertyChanged;
         void RaisePropertyChanged([CallerMemberName] string property = "")
@@ -62,17 +80,6 @@ namespace PdfJsRenderer
             }
         }
 
-
-        #region properties
-
-        public bool CanStart
-        {
-            get
-            {
-                return _ready && !string.IsNullOrEmpty(PdfFile) && !IsBusy;
-            }
-        }
-
         public void Start()
         {
             if (CanStart)
@@ -87,7 +94,26 @@ namespace PdfJsRenderer
                     _singleServer = new SingleFileServer(PdfFile);
                     uri = new Uri(_singleServer.FileUrl);
                 }
-                _browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), DPI });
+
+                Console.WriteLine("Starting render of {0}", PdfFile);
+                _watch.Restart();
+                _browser.Invoke(new Action(() =>
+                {
+                    _browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), DPI });
+                }));
+            }
+        }
+
+        #region properties
+
+        public bool Verbose { get; set; }
+        public string SaveFolder { get; set; }
+
+        public bool CanStart
+        {
+            get
+            {
+                return _ready && !string.IsNullOrEmpty(PdfFile) && !IsBusy;
             }
         }
 
@@ -109,7 +135,12 @@ namespace PdfJsRenderer
         private int _dpi;
         public int DPI
         {
-            get { return _dpi; }
+            get
+            {
+                if (_dpi < MinDPI) { return MinDPI; }
+                if (_dpi > MaxDPI) { return MaxDPI; }
+                return _dpi;
+            }
             set { _dpi = value; RaisePropertyChanged(); }
         }
 
@@ -156,33 +187,36 @@ namespace PdfJsRenderer
         {
             TotalPages = pages;
 
-            _saveFolder = ConfigurationManager.AppSettings["SaveFolder"];
-            if (string.IsNullOrEmpty(_saveFolder)) { _saveFolder = Environment.CurrentDirectory; }
+            Console.WriteLine("Received pdf info of {0} pages.", pages);
 
-            _saveFolder = Path.Combine(Environment.CurrentDirectory, id);
+            if (string.IsNullOrEmpty(SaveFolder)) { SaveFolder = Environment.CurrentDirectory; }
 
-            if (Directory.Exists(_saveFolder))
+            SaveFolder = Path.Combine(Environment.CurrentDirectory, id);
+
+            if (Directory.Exists(SaveFolder))
             {
-                foreach (var file in Directory.EnumerateFiles(_saveFolder))
+                foreach (var file in Directory.EnumerateFiles(SaveFolder))
                 {
                     File.Delete(file);
                 }
             }
             else
             {
-                Directory.CreateDirectory(_saveFolder);
+                Directory.CreateDirectory(SaveFolder);
             }
         }
 
         public void PageRendered(int page, string data)
         {
-            if (_saveFolder != null)
+            if (SaveFolder != null)
             {
+                Console.WriteLine("Received rendered page {0}.", page);
+
                 RenderedPages = page;
 
                 _savePool.AddWorkItem(new Action(() =>
                 {
-                    var filePath = Path.Combine(_saveFolder, string.Format("{0:0000}.png", page));
+                    var filePath = Path.Combine(SaveFolder, string.Format("{0:0000}.png", page));
                     var base64Data = Regex.Match(data, @"data:image/(?<type>.+?),(?<data>.+)").Groups["data"].Value;
                     var binData = Convert.FromBase64String(base64Data);
 
@@ -199,6 +233,9 @@ namespace PdfJsRenderer
 
         public void RenderCompleted()
         {
+            _watch.Stop();
+            Console.WriteLine("Render completed in {0}.", _watch.Elapsed);
+
             IsBusy = false;
             Cleanup();
 
@@ -206,14 +243,17 @@ namespace PdfJsRenderer
             {
                 Thread.Sleep(100);
             }
-            using (Process.Start(_saveFolder))
+            using (Process.Start(SaveFolder))
             {
-                _saveFolder = null;
+                SaveFolder = null;
             }
         }
 
         public void Failed(string info)
         {
+            _watch.Stop();
+            Console.WriteLine("Render failed: {0}.", info);
+
             Error = info;
             IsBusy = false;
             Cleanup();
@@ -228,6 +268,10 @@ namespace PdfJsRenderer
             }
         }
 
+        public void ExitForConsole()
+        {
+            _browser.Invoke(new Action(() => { Application.ExitThread(); }));
+        }
         #endregion
     }
 }

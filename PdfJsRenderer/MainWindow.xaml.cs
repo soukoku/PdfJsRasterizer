@@ -20,7 +20,7 @@ namespace PdfJsRenderer
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    partial class MainWindow : Window
     {
         Renderer _vm;
         public MainWindow()
