@@ -17,7 +17,6 @@ namespace PdfJsRenderer
     /// <summary>
     /// The rendering worker.
     /// </summary>
-    [ComVisibleAttribute(true)]
     public class Renderer : INotifyPropertyChanged, IDisposable
     {
         public Renderer()
@@ -39,7 +38,7 @@ namespace PdfJsRenderer
             {
                 _browser = new WebBrowser
                 {
-                    ObjectForScripting = this
+                    ObjectForScripting = new ScriptCallback(this)
                 };
                 _browser.DocumentCompleted += (s, e) =>
                 {
@@ -96,6 +95,25 @@ namespace PdfJsRenderer
                 {
                     _browser.Document.InvokeScript("renderPdf", new object[] { uri.ToString(), DPI });
                 }));
+            }
+        }
+
+        void Cleanup()
+        {
+            if (_singleServer != null)
+            {
+                _singleServer.Dispose();
+                _singleServer = null;
+            }
+        }
+
+        public void Dispose()
+        {
+            Cleanup();
+            if (_browser != null)
+            {
+                _browser.Invoke(new Action(() => { Application.ExitThread(); }));
+                _browser = null;
             }
         }
 
@@ -188,7 +206,13 @@ namespace PdfJsRenderer
 
         #region callbacks
 
-        public void PdfOpened(string id, int pages)
+        public event EventHandler<PdfOpenedEvenrArgs> PdfOpened;
+        public event EventHandler<PageOpenedEvenrArgs> PageOpened;
+        public event EventHandler<PageRenderedEvenrArgs> PageRendered;
+        public event EventHandler RenderCompleted;
+        public event EventHandler<FailedEvenrArgs> Failed;
+
+        void OnPdfOpened(string id, int pages)
         {
             TotalPages = pages;
 
@@ -209,19 +233,30 @@ namespace PdfJsRenderer
             {
                 Directory.CreateDirectory(SaveFolder);
             }
+
+            if (PdfOpened != null) { PdfOpened(this, new PdfOpenedEvenrArgs { Id = id, Pages = pages }); }
         }
 
-        public void PageRendered(int page, string data)
+        void OnPageOpened(int pageNumber, dynamic page)
+        {
+            if (PageOpened != null) { PageOpened(this, new PageOpenedEvenrArgs { PageNumber = pageNumber, Page = page }); }
+
+            //var viewport = page.getViewport(1);
+            //int w = viewport.width;
+            //int h = viewport.height;
+        }
+
+        void OnPageRendered(int pageNumber, string data)
         {
             if (SaveFolder != null)
             {
-                Log("Received rendered page {0}.", page);
+                Log("Received rendered page {0}.", pageNumber);
 
-                RenderedPages = page;
+                RenderedPages = pageNumber;
 
                 _savePool.AddWorkItem(new Action(() =>
                 {
-                    var filePath = Path.Combine(SaveFolder, string.Format("{0:0000}.png", page));
+                    var filePath = Path.Combine(SaveFolder, string.Format("{0:0000}.png", pageNumber));
                     var base64Data = Regex.Match(data, @"data:image/(?<type>.+?),(?<data>.+)").Groups["data"].Value;
                     var binData = Convert.FromBase64String(base64Data);
 
@@ -234,9 +269,11 @@ namespace PdfJsRenderer
                     }
                 }));
             }
+
+            if (PageRendered != null) { PageRendered(this, new PageRenderedEvenrArgs { PageNumber = pageNumber, Data = data }); }
         }
 
-        public void RenderCompleted()
+        void OnRenderCompleted()
         {
             _watch.Stop();
             Log("Render completed in {0}.", _watch.Elapsed);
@@ -252,9 +289,12 @@ namespace PdfJsRenderer
             {
                 SaveFolder = null;
             }
+
+            if (RenderCompleted != null) { RenderCompleted(this, EventArgs.Empty); }
+
         }
 
-        public void Failed(string info)
+        void OnFailed(string info)
         {
             _watch.Stop();
             Log("Render failed: {0}.", info);
@@ -262,26 +302,45 @@ namespace PdfJsRenderer
             Error = info;
             IsBusy = false;
             Cleanup();
+
+            if (Failed != null) { Failed(this, new FailedEvenrArgs { Info = info }); }
         }
 
-        void Cleanup()
+        [ComVisibleAttribute(true)]
+        public class ScriptCallback
         {
-            if (_singleServer != null)
-            {
-                _singleServer.Dispose();
-                _singleServer = null;
-            }
-        }
+            private Renderer _renderer;
 
-
-        public void Dispose()
-        {
-            Cleanup();
-            if (_browser != null)
+            internal ScriptCallback(Renderer renderer)
             {
-                _browser.Invoke(new Action(() => { Application.ExitThread(); }));
-                _browser = null;
+                _renderer = renderer;
             }
+
+            public void pdfOpened(string id, int pages)
+            {
+                _renderer.OnPdfOpened(id, pages);
+            }
+
+            public void pageOpened(int pageNumber, dynamic page)
+            {
+                _renderer.OnPageOpened(pageNumber, page);
+            }
+
+            public void pageRendered(int pageNumber, string data)
+            {
+                _renderer.OnPageRendered(pageNumber, data);
+            }
+
+            public void renderCompleted()
+            {
+                _renderer.OnRenderCompleted();
+            }
+
+            public void failed(string info)
+            {
+                _renderer.OnFailed(info);
+            }
+
         }
         #endregion
     }

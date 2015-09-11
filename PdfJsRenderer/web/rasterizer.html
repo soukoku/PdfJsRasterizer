@@ -26,17 +26,19 @@
                         id: pdf.fingerprint,
                         pages: pdf.numPages
                     };
-                    window.external.PdfOpened(info.id, info.pages);
+                    window.external.pdfOpened(info.id, info.pages);
                     renderPage(pdf, 1, info.pages);
 
                 }, function (error) {
                     alert('failed doc');
-                    window.external.Failed(error);
+                    window.external.failed(error);
                 });
             }
 
             function renderPage(pdf, pageNum, totalPages) {
                 pdf.getPage(pageNum).then(function (page) {
+
+                    window.external.pageOpened(pageNum, page);
 
                     var viewport = page.getViewport(_scale);
                     //alert(viewport.width + ', ' + viewport.height);
@@ -52,21 +54,21 @@
                     };
                     page.render(renderContext).promise.then(function () {
                         var pngData = canvas.toDataURL("image/png");
-                        window.external.PageRendered(pageNum, pngData);
+                        window.external.pageRendered(pageNum, pngData);
 
                         if (pageNum < totalPages) {
                             renderPage(pdf, pageNum + 1, totalPages);
                         } else {
-                            window.external.RenderCompleted();
+                            window.external.renderCompleted();
                         }
 
                     }, function (error) {
-                        window.external.Failed(error);
+                        window.external.failed(error);
                     });
 
 
                 }, function (error) {
-                    window.external.Failed(error);
+                    window.external.failed(error);
                 });
             }
 
@@ -76,15 +78,15 @@
         function renderPdf(filePath, dpi) {
             if (window.external) {
                 if (!filePath) {
-                    window.external.Failed("No file path specified.");
+                    window.external.failed("No file path specified.");
                 } else if (!PDFJS) {
-                    window.external.Failed("PDFJS is not available.");
+                    window.external.failed("PDFJS is not available.");
                 } else {
                     var canvas = document.getElementById('the-canvas');
                     if (canvas.toDataURL) {
                         renderer.start(filePath, dpi);
                     } else {
-                        window.external.Failed("Browser doesn't support toDataURL().");
+                        window.external.failed("Browser doesn't support toDataURL().");
                     }
                 }
             }

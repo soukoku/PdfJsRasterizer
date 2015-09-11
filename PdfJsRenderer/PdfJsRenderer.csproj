@@ -95,6 +95,7 @@
     </Page>
     <Compile Include="CommandOptions.cs" />
     <Compile Include="Converters\BoolNotConverter.cs" />
+    <Compile Include="EvenrArgs.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ToolServer.cs" />
     <Compile Include="Renderer.cs" />
