@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>PDF.js rasterizer</title>
-    <script src="/pdfjs/web/compatibility.js"></script>
-    <script src="/pdfjs/build/pdf.js"></script>
+    <script src="pdfjs/web/compatibility.js"></script>
+    <script src="pdfjs/build/pdf.js"></script>
 </head>
 <body>
     <canvas id="the-canvas"></canvas>
@@ -30,7 +30,6 @@
                     renderPage(pdf, 1, info.pages);
 
                 }, function (error) {
-                    alert('failed doc');
                     window.external.failed(error);
                 });
             }
