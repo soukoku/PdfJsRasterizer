@@ -66,11 +66,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Soukoku.Owin.Files, Version=0.2.0.0, Culture=neutral, PublicKeyToken=f9f7e0c5169536c8, processorArchitecture=MSIL">
-      <HintPath>..\packages\Soukoku.Owin.Files.0.2.0.0\lib\net45\Soukoku.Owin.Files.dll</HintPath>
+      <HintPath>..\packages\Soukoku.Owin.Files.0.2.2.0\lib\net45\Soukoku.Owin.Files.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Soukoku.Owin.Files.Zipped, Version=0.2.0.0, Culture=neutral, PublicKeyToken=f9f7e0c5169536c8, processorArchitecture=MSIL">
-      <HintPath>..\packages\Soukoku.Owin.Files.Zipped.0.2.0.0\lib\net45\Soukoku.Owin.Files.Zipped.dll</HintPath>
+      <HintPath>..\packages\Soukoku.Owin.Files.Zipped.0.2.2.0\lib\net45\Soukoku.Owin.Files.Zipped.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />

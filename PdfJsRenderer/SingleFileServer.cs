@@ -14,10 +14,10 @@ namespace PdfJsRenderer
     sealed class SingleFileServer : IDisposable
     {
         /// <summary>
-        /// Folder path holder for startup use.
+        /// File path holder for startup use.
         /// </summary>
         [ThreadStatic]
-        static string FolderPath;
+        static string FilePath;
 
         IDisposable _server;
         public SingleFileServer(string filePath)
@@ -25,9 +25,9 @@ namespace PdfJsRenderer
             if (!File.Exists(filePath)) { throw new FileNotFoundException(); }
 
             var serverUrl = "http://localhost:" + ToolServer.GetFreePort();
-            FolderPath = Path.GetDirectoryName(filePath);
+            FilePath = filePath;
             _server = WebApp.Start<SingleStartUp>(serverUrl);
-            FolderPath = null;
+            FilePath = null;
             FileUrl = serverUrl + "/" + Path.GetFileName(filePath);
         }
 
@@ -47,7 +47,7 @@ namespace PdfJsRenderer
         {
             public void Configuration(IAppBuilder app)
             {
-                app.Use<FilesMiddleware>(new FilesConfig(new LooseFilesDataStore(FolderPath)));
+                app.Use<FilesMiddleware>(new FilesConfig(new SingleFilesDataStore(FilePath)));
             }
         }
     }
